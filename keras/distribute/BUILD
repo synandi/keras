@@ -78,6 +78,7 @@ py_library(
         ":distributed_file_utils",
         "//:expect_tensorflow_installed",
         "//keras:backend",
+        "//keras:distribute_utils",
         "//keras/utils:mode_keys",
     ],
 )

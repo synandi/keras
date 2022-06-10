@@ -20,7 +20,17 @@ import tensorflow.compat.v2 as tf
 
 from keras import backend
 from keras.distribute import distributed_file_utils
+from keras.distribute.distributed_file_utils import support_keras_on_demand_checkpoint_callback
 from keras.utils import mode_keys
+
+
+def _enable_preemption_checkpoint(setting, strategy):
+    if setting and isinstance(
+      strategy, tf.distribute.MultiWorkerMirroredStrategy) and (
+          support_keras_on_demand_checkpoint_callback()):
+        return True
+
+    return False
 
 
 class WorkerTrainingState:
