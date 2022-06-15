@@ -3663,16 +3663,44 @@ class Model(base_layer.Layer, version_utils.ModelVersionSelector):
 
 
 def reduce_per_replica(values, strategy, reduction="first"):
-    """Reduce PerReplica objects.
+    """Attempt to reduce the structure `values` to single values.
+
+    Receiving `values` which is a `tf.Tensor` or `PerReplica` structure
+    that represents the values across all the replicas, `reduce_per_replica`
+    attempts to "reduce" those values and returns the corresponding structure
+    that represents only single values.
+
+    Currently, `reduce_per_replica` is only used for reducing the metric results
+    from `tf.distribute.Strategy.run()`. Depending on the underlying
+    `Strategy`'s implementation, `values` may be a `PerReplica`, which can be
+    thought of as a collection of values across the replicas, or a simple
+    `tf.Tensor`, if the strategy has already conducted the reduction for the
+    downstream library.
+
+    There are three possible outcomes of reduction:
+    1) if the `values` is a structure of simple `tf.Tensor`s, meaning that a
+       reduction is not actually needed, `reduce_per_replica` returns the
+       structure as-is.
+    2) else, if reduction is specified as "first", `reduce_per_replica` returns
+       the values of the first replica. This is used for the case of training
+       and evaluation, where `values` is expected to hold the same values across
+       the replicas as a result of `Strategy`'s synchronization across the
+       replicas. `reduce_per_replica` does not synchronize the values.
+    3) else, if reduction is specified as "concat", `reduce_per_replica` returns
+       the concatenation of the values across the replicas. This is used for the
+       case of prediction.
 
     Args:
-      values: Structure of `PerReplica` objects or `Tensor`s. `Tensor`s are
-        returned as-is.
+      values: Structure of `PerReplica` objects or `tf.Tensor`s. `tf.Tensor`s
+        are returned as-is.
       strategy: `tf.distribute.Strategy` object.
       reduction: One of 'first', 'concat'.
 
     Returns:
-      Structure of `Tensor`s.
+      Structure of `Tensor`s, representing the result of reduction.
+
+    Raises:
+      ValueError: if the reduction method is not supported.
     """
 
     def _reduce(v):
